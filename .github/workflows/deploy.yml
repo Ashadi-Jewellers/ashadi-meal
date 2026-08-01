@@ -1,0 +1,65 @@
+name: Deploy Meal App
+
+on:
+  workflow_dispatch:  # manual trigger only — go to Actions tab and click "Run workflow"
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Resolve target environment
+        id: vars
+        run: |
+          echo "host=${{ secrets.PROD_HOST }}"        >> "$GITHUB_OUTPUT"
+          echo "port=${{ secrets.PROD_PORT }}"        >> "$GITHUB_OUTPUT"
+          echo "user=${{ secrets.PROD_USER }}"        >> "$GITHUB_OUTPUT"
+          echo "path=${{ secrets.MEAL_DEPLOY_PATH }}" >> "$GITHUB_OUTPUT"
+
+      - name: Configure SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -p ${{ steps.vars.outputs.port }} ${{ steps.vars.outputs.host }} >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Create release folder
+        id: release
+        run: |
+          RELEASE="release_$(date +%Y%m%d%H%M%S)_${GITHUB_SHA::7}"
+          echo "name=$RELEASE" >> "$GITHUB_OUTPUT"
+          ssh -i ~/.ssh/deploy_key -p ${{ steps.vars.outputs.port }} \
+            ${{ steps.vars.outputs.user }}@${{ steps.vars.outputs.host }} \
+            "mkdir -p ${{ steps.vars.outputs.path }}/releases/$RELEASE"
+
+      - name: Rsync code to release folder
+        run: |
+          rsync -az --delete \
+            -e "ssh -i ~/.ssh/deploy_key -p ${{ steps.vars.outputs.port }}" \
+            --exclude='.git' --exclude='.github' \
+            ./ ${{ steps.vars.outputs.user }}@${{ steps.vars.outputs.host }}:${{ steps.vars.outputs.path }}/releases/${{ steps.release.outputs.name }}/
+
+      - name: Link shared config, switch symlink, cleanup old releases
+        run: |
+          ssh -i ~/.ssh/deploy_key -p ${{ steps.vars.outputs.port }} \
+            ${{ steps.vars.outputs.user }}@${{ steps.vars.outputs.host }} '
+            set -e
+            cd ${{ steps.vars.outputs.path }}
+            REL=releases/${{ steps.release.outputs.name }}
+
+            ln -sfn ../../../shared/includes/config.php "$REL/includes/config.php"
+            ln -sfn ../../../shared/includes/config.local.php "$REL/includes/config.local.php"
+
+            ln -sfn "$REL" current_tmp
+            mv -Tf current_tmp current
+
+            sudo systemctl reload php8.3-fpm
+
+            ls -1dt releases/*/ | tail -n +6 | xargs -r rm -rf
+          '
+
+      - name: Deployment summary
+        run: echo "Deployed ${{ steps.release.outputs.name }} to ${{ steps.vars.outputs.host }} (${{ github.ref_name }})"
