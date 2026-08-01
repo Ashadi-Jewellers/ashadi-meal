@@ -1,0 +1,19 @@
+# Secrets — DB credentials
+includes/config.php
+includes/config.local.php
+
+# Database dumps, if any appear later
+*.sql
+
+# Uploads (currently empty, kept in shared/ once deploy structure exists)
+public/uploads/
+
+# OS / editor cruft
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# Backups
+*.bak
+*.zip
