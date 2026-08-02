@@ -53,7 +53,10 @@ require_once __DIR__ . '/includes/header.php';
       <div class="page-title">Daily Report</div>
       <div class="page-sub">All meals for a selected date</div>
     </div>
-    <button onclick="window.print()" class="btn btn-print">Print</button>
+    <div style="display:flex;gap:10px;">
+      <button onclick="window.print()" class="btn btn-print">Print</button>
+      <button onclick="printCountReport()" class="btn btn-print">Print Count Sheet</button>
+    </div>
   </div>
 
   <div class="card no-print">
@@ -103,13 +106,13 @@ require_once __DIR__ . '/includes/header.php';
   </div>
   <?php endif; ?>
 
-  <div class="print-header">
+  <div class="print-header amount-print-header">
     <h2>ASHADI JEWELLERS</h2>
     <h3 style="font-size:14px;margin-top:4px;">DAILY REPORT</h3>
     <p><?= date('l, F j, Y', strtotime($f_date)) ?> &nbsp;&nbsp; <?= date('g:i:s A') ?></p>
   </div>
 
-  <div class="card">
+  <div class="card amount-report-card">
     <div class="card-title">Daily Meal Summary &mdash; <?= date('d M Y', strtotime($f_date)) ?></div>
     <div class="table-wrap">
       <table>
@@ -156,5 +159,80 @@ require_once __DIR__ . '/includes/header.php';
       </table>
     </div>
   </div>
+
+  <!-- Count-only print header (only shown when "Print Count Sheet" is used) -->
+  <div class="print-header count-print-header">
+    <h2>ASHADI JEWELLERS</h2>
+    <h3 style="font-size:14px;margin-top:4px;">DAILY MEAL COUNT REPORT</h3>
+    <p><?= date('l, F j, Y', strtotime($f_date)) ?> &nbsp;&nbsp; <?= date('g:i:s A') ?></p>
+  </div>
+
+  <!-- Count-only table (Emp No, Name, Section, BF, LUN, DIN counts) -->
+  <div class="card count-report-card">
+    <div class="card-title">Daily Meal Count &mdash; <?= date('d M Y', strtotime($f_date)) ?></div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Emp No</th>
+            <th>Name</th>
+            <th>Section</th>
+            <th class="right">BF</th>
+            <th class="right">LUN</th>
+            <th class="right">DIN</th>
+          </tr>
+        </thead>
+        <tbody>
+          <?php if (!$rows): ?>
+          <tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:20px;">No records found for this date.</td></tr>
+          <?php endif;
+          foreach ($rows as $r): ?>
+          <tr>
+            <td><?= htmlspecialchars($r['EmpID'] ?? '-') ?></td>
+            <td><?= htmlspecialchars($r['Name'] ?? '-') ?></td>
+            <td><?= htmlspecialchars($r['Section'] ?? '-') ?></td>
+            <td class="right"><?= $r['cnt_BF'] ?: '-' ?></td>
+            <td class="right"><?= $r['cnt_LUN'] ?: '-' ?></td>
+            <td class="right"><?= $r['cnt_DIN'] ?: '-' ?></td>
+          </tr>
+          <?php endforeach; ?>
+        </tbody>
+        <?php if ($rows): ?>
+        <tfoot>
+          <tr>
+            <td colspan="3"><strong><?= count($rows) ?> employees</strong></td>
+            <td class="right"><strong><?= $n_bf ?></strong></td>
+            <td class="right"><strong><?= $n_lun ?></strong></td>
+            <td class="right"><strong><?= $n_din ?></strong></td>
+          </tr>
+        </tfoot>
+        <?php endif; ?>
+      </table>
+    </div>
+  </div>
 </div>
+
+<style>
+  /* Count sheet hidden on screen by default, and hidden by default when printing too */
+  .count-print-header,
+  .count-report-card { display: none; }
+
+  @media print {
+    /* When "Print Count Sheet" is used, hide the amount report and show the count one */
+    body.print-mode-count .amount-print-header,
+    body.print-mode-count .amount-report-card { display: none !important; }
+
+    body.print-mode-count .count-print-header,
+    body.print-mode-count .count-report-card { display: block !important; }
+  }
+</style>
+<script>
+function printCountReport() {
+  document.body.classList.add('print-mode-count');
+  window.print();
+}
+window.addEventListener('afterprint', function () {
+  document.body.classList.remove('print-mode-count');
+});
+</script>
 <?php require_once __DIR__ . '/includes/footer.php'; ?>
