@@ -13,14 +13,14 @@ if (!in_array($filter, ['BF','LUN','DIN'])) $filter = '';
 
 // Today stats
 $today_stats = ['BF'=>['cnt'=>0,'total'=>0],'LUN'=>['cnt'=>0,'total'=>0],'DIN'=>['cnt'=>0,'total'=>0]];
-$stmt = $conn->query("SELECT meal_type, COUNT(*) as cnt, SUM(amount) as total FROM meal_records WHERE meal_date='$today' GROUP BY meal_type");
+$stmt = $conn->query("SELECT meal_type, SUM(quantity) as cnt, SUM(amount) as total FROM meal_records WHERE meal_date='$today' GROUP BY meal_type");
 if ($stmt) while ($r = $stmt->fetch_assoc()) {
     $today_stats[$r['meal_type']] = ['cnt'=>(int)$r['cnt'],'total'=>(float)($r['total']??0)];
 }
 
 // Month stats
 $month_total = ['cnt'=>0,'total'=>0.0];
-$ms = $conn->query("SELECT COUNT(*) as cnt, SUM(amount) as total FROM meal_records WHERE DATE_FORMAT(meal_date,'%Y-%m')='$this_month'");
+$ms = $conn->query("SELECT SUM(quantity) as cnt, SUM(amount) as total FROM meal_records WHERE DATE_FORMAT(meal_date,'%Y-%m')='$this_month'");
 if ($ms) { $row=$ms->fetch_assoc(); $month_total=['cnt'=>(int)($row['cnt']??0),'total'=>(float)($row['total']??0)]; }
 
 // Recent entries - ONE row per employee per date, merged BF/LUN/DIN columns
@@ -35,7 +35,8 @@ $recent_sql = "
         MAX(CASE WHEN mr.meal_type='LUN' THEN mr.amount END) as lun_amount,
         MAX(CASE WHEN mr.meal_type='DIN' THEN mr.amount END) as din_amount,
         SUM(mr.amount) as total,
-        GROUP_CONCAT(DISTINCT mr.remarks SEPARATOR ', ') as remarks
+        GROUP_CONCAT(DISTINCT mr.remarks SEPARATOR ', ') as remarks,
+        MAX(mr.is_guest) as is_guest
     FROM meal_records mr
     LEFT JOIN employees e ON mr.employee_id = e.id
     WHERE 1=1 $filter_where
@@ -150,9 +151,9 @@ require_once __DIR__ . '/includes/header.php';
           <?php else: foreach ($recent_rows as $r): ?>
           <tr>
             <td><?= date('d M Y', strtotime($r['meal_date'])) ?></td>
-            <td><?= htmlspecialchars($r['EmpID'] ?? '-') ?></td>
-            <td><?= htmlspecialchars($r['Name'] ?? '-') ?></td>
-            <td><?= htmlspecialchars($r['Section'] ?? '-') ?></td>
+            <td><?= !empty($r['is_guest']) ? '<span class="badge" style="background:#eaf1f8;color:#1a5a8c;">GUEST</span>' : htmlspecialchars($r['EmpID'] ?? '-') ?></td>
+            <td><?= htmlspecialchars($r['Name'] ?? ($r['is_guest'] ? 'Non-Employee' : '-')) ?></td>
+            <td><?= !empty($r['is_guest']) ? '-' : htmlspecialchars($r['Section'] ?? '-') ?></td>
             <td class="right">
               <?php if ($r['bf_amount'] !== null): ?>
                 <span class="badge badge-bf">Rs.<?= number_format((float)$r['bf_amount'],2) ?></span>
