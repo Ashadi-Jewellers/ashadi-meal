@@ -132,17 +132,19 @@ require_once __DIR__ . '/includes/header.php';
             <th>Date</th>
             <th>Day</th>
             <th class="right">No. of Employees</th>
+            <th class="right"><?= htmlspecialchars($meal_label) ?> Count</th>
             <th class="right">Total Amount (Rs.)</th>
           </tr>
         </thead>
         <tbody>
           <?php if (!$rows): ?>
-          <tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:24px;">No <?= htmlspecialchars(strtolower($meal_label)) ?> records found for this date range.</td></tr>
+          <tr><td colspan="5" style="text-align:center;color:var(--text-muted);padding:24px;">No <?= htmlspecialchars(strtolower($meal_label)) ?> records found for this date range.</td></tr>
           <?php endif;
           foreach ($rows as $r): ?>
           <tr>
             <td><?= date('d M Y', strtotime($r['meal_date'])) ?></td>
             <td><?= date('l', strtotime($r['meal_date'])) ?></td>
+            <td class="right"><?= (int)$r['emp_count'] ?></td>
             <td class="right"><?= (int)$r['emp_count'] ?></td>
             <td class="right"><?= number_format($r['total_amount'], 2) ?></td>
           </tr>
@@ -152,6 +154,7 @@ require_once __DIR__ . '/includes/header.php';
         <tfoot>
           <tr class="rmr-grand-total">
             <td colspan="2">Grand Total</td>
+            <td class="right"><?= $grand_count ?></td>
             <td class="right"><?= $grand_count ?></td>
             <td class="right"><?= number_format($grand_amount, 2) ?></td>
           </tr>
