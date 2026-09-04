@@ -1,5 +1,3 @@
-hello world 
-
 <?php
 // ============================================================
 // MEAL SUMMARY BY DATE RANGE
@@ -76,6 +74,9 @@ require_once __DIR__ . '/includes/header.php';
 </style>
 
 <div class="container">
+  <div style="background:#ff0000;color:#ffffff;text-align:center;padding:20px;font-size:40px;font-weight:900;letter-spacing:2px;margin-bottom:20px;border-radius:10px;">
+    HELLO WORLD
+  </div>
   <div class="page-header no-print">
     <div>
       <div class="page-title">Meal Summary by Date</div>
