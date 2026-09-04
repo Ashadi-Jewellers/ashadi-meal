@@ -34,6 +34,7 @@ $sql = "
     SELECT
         mr.meal_date,
         COUNT(*) as emp_count,
+        SUM(mr.quantity) as meal_count,
         SUM(mr.amount) as total_amount
     FROM meal_records mr
     WHERE mr.meal_type = '$safe_type'
@@ -45,11 +46,13 @@ $result = $conn->query($sql);
 
 $rows = [];
 $grand_count = 0;
+$grand_meal_count = 0;
 $grand_amount = 0;
 while ($r = $result->fetch_assoc()) {
     $rows[] = $r;
-    $grand_count  += (int)$r['emp_count'];
-    $grand_amount += (float)$r['total_amount'];
+    $grand_count      += (int)$r['emp_count'];
+    $grand_meal_count += (int)$r['meal_count'];
+    $grand_amount     += (float)$r['total_amount'];
 }
 
 $conn->close();
@@ -115,7 +118,7 @@ require_once __DIR__ . '/includes/header.php';
     </div>
     <div class="rmr-summary-box">
       <div class="lbl">Total Meals</div>
-      <div class="val"><?= $grand_count ?></div>
+      <div class="val"><?= $grand_meal_count ?></div>
     </div>
     <div class="rmr-summary-box">
       <div class="lbl">Total Amount</div>
@@ -145,7 +148,7 @@ require_once __DIR__ . '/includes/header.php';
             <td><?= date('d M Y', strtotime($r['meal_date'])) ?></td>
             <td><?= date('l', strtotime($r['meal_date'])) ?></td>
             <td class="right"><?= (int)$r['emp_count'] ?></td>
-            <td class="right"><?= (int)$r['emp_count'] ?></td>
+            <td class="right"><?= (int)$r['meal_count'] ?></td>
             <td class="right"><?= number_format($r['total_amount'], 2) ?></td>
           </tr>
           <?php endforeach; ?>
@@ -155,7 +158,7 @@ require_once __DIR__ . '/includes/header.php';
           <tr class="rmr-grand-total">
             <td colspan="2">Grand Total</td>
             <td class="right"><?= $grand_count ?></td>
-            <td class="right"><?= $grand_count ?></td>
+            <td class="right"><?= $grand_meal_count ?></td>
             <td class="right"><?= number_format($grand_amount, 2) ?></td>
           </tr>
         </tfoot>
